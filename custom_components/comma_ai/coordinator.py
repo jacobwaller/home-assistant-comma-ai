@@ -61,27 +61,33 @@ class CommaDataUpdateCoordinator(DataUpdateCoordinator[CommaCoordinatorData]):
         self, hass: HomeAssistant, config_entry: CommaConfigEntry, api_client: CommaAPIClient
     ) -> None:
         """Initialize the coordinator."""
+        initial_update_interval = self._resolve_update_interval(config_entry)
         super().__init__(
             hass,
             logger=_LOGGER,
             config_entry=config_entry,
             name=DOMAIN,
-            update_interval=timedelta(seconds=self.current_update_interval),
+            update_interval=timedelta(seconds=initial_update_interval),
         )
         self.api_client = api_client
 
-    @property
-    def current_update_interval(self) -> int:
-        """Return the configured update interval in seconds."""
-        value = self.config_entry.options.get(
+    @staticmethod
+    def _resolve_update_interval(config_entry: CommaConfigEntry) -> int:
+        """Resolve update interval from entry options/data."""
+        value = config_entry.options.get(
             CONF_UPDATE_INTERVAL,
-            self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         try:
             interval = int(value)
         except (TypeError, ValueError):
             interval = DEFAULT_UPDATE_INTERVAL
         return max(MIN_UPDATE_INTERVAL, min(interval, MAX_UPDATE_INTERVAL))
+
+    @property
+    def current_update_interval(self) -> int:
+        """Return the configured update interval in seconds."""
+        return self._resolve_update_interval(self.config_entry)
 
     def set_update_interval(self, seconds: int) -> None:
         """Apply a new update interval to the coordinator."""
@@ -164,4 +170,3 @@ class CommaDataUpdateCoordinator(DataUpdateCoordinator[CommaCoordinatorData]):
         except CommaAPIError:
             _LOGGER.debug("Could not fetch location for device %s", dongle_id)
             return None
-
