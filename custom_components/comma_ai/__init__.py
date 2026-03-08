@@ -32,6 +32,13 @@ class CommaData:
 type CommaConfigEntry = ConfigEntry[CommaData]
 
 
+async def _async_entry_updated(hass: HomeAssistant, config_entry: CommaConfigEntry) -> None:
+    """Handle config entry option updates."""
+    coordinator = config_entry.runtime_data.coordinator
+    coordinator.set_update_interval(coordinator.current_update_interval)
+    await coordinator.async_request_refresh()
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: CommaConfigEntry,
@@ -59,6 +66,7 @@ async def async_setup_entry(
         coordinator=coordinator,
         api_client=api_client,
     )
+    config_entry.async_on_unload(config_entry.add_update_listener(_async_entry_updated))
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     return True
@@ -69,5 +77,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: CommaConfigEntry) -> bo
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         del entry.runtime_data
     return unload_ok
-
 

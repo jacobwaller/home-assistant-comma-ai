@@ -10,7 +10,14 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import CommaAPIError
-from .const import CONF_IGNORE_NON_OWNED, DOMAIN, UPDATE_INTERVAL
+from .const import (
+    CONF_IGNORE_NON_OWNED,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -59,9 +66,27 @@ class CommaDataUpdateCoordinator(DataUpdateCoordinator[CommaCoordinatorData]):
             logger=_LOGGER,
             config_entry=config_entry,
             name=DOMAIN,
-            update_interval=timedelta(seconds=UPDATE_INTERVAL),
+            update_interval=timedelta(seconds=self.current_update_interval),
         )
         self.api_client = api_client
+
+    @property
+    def current_update_interval(self) -> int:
+        """Return the configured update interval in seconds."""
+        value = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL,
+            self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+        )
+        try:
+            interval = int(value)
+        except (TypeError, ValueError):
+            interval = DEFAULT_UPDATE_INTERVAL
+        return max(MIN_UPDATE_INTERVAL, min(interval, MAX_UPDATE_INTERVAL))
+
+    def set_update_interval(self, seconds: int) -> None:
+        """Apply a new update interval to the coordinator."""
+        seconds = max(MIN_UPDATE_INTERVAL, min(int(seconds), MAX_UPDATE_INTERVAL))
+        self.update_interval = timedelta(seconds=seconds)
 
     async def _async_update_data(self) -> CommaCoordinatorData:
         """Fetch data from API."""
@@ -139,5 +164,4 @@ class CommaDataUpdateCoordinator(DataUpdateCoordinator[CommaCoordinatorData]):
         except CommaAPIError:
             _LOGGER.debug("Could not fetch location for device %s", dongle_id)
             return None
-
 
