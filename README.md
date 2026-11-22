@@ -11,15 +11,15 @@ This custom integration allows you to monitor your comma.ai devices (EON, comma 
 
 ## Installation
 
-1. Open HACS store
-    - If you don't have HACS installed, follow [these instructions](https://www.hacs.xyz/docs/use/)
-2. In the top right, click the three dots, and click "Custom Repositories"
-3. Add `https://github.com/bscholer/home-assistant-comma-ai`, then close the modal
-4. Search for `comma.ai` in the HACS store. Open `comma.ai`, and click "Download"
-5. Restart Home Assistant
-6. Go to Settings → Devices & Services → Add Integration
-7. Search for "comma.ai"
-8. Enter your JWT token (get it from [jwt.comma.ai](https://jwt.comma.ai))
+1. In Home Assistant, go to Settings → Marketplace (built into Home Assistant 2026.11+)
+2. Open the menu, choose "Custom repositories", and add `https://github.com/bscholer/home-assistant-comma-ai` as an Integration
+3. Search for `comma.ai`, open it, and click "Download"
+4. Restart Home Assistant
+5. Go to Settings → Devices & Services → Add Integration
+6. Search for "comma.ai"
+7. Enter your JWT token (get it from [jwt.comma.ai](https://jwt.comma.ai))
+
+On Home Assistant older than 2026.11, install [HACS](https://www.hacs.xyz/docs/use/) and add the repository as a custom repository there instead.
 
 ## Configuration
 
@@ -52,6 +52,8 @@ Once configured, the integration will:
 - Add a device tracker entity for GPS location tracking
 - Update data every 60 seconds
 
+The software branch, commit, remote and platform sensors are derived from the most recent route uploaded by the device. They refresh after the device uploads its next drive.
+
 ## Entities Created
 
 For each comma.ai device, the following entities will be created:
@@ -62,6 +64,10 @@ For each comma.ai device, the following entities will be created:
 - `sensor.<device_name>_dongle_id` - The Dongle ID of the device
 - `sensor.<device_name>_device_type` - The type of device (e.g., "neo", "three")
 - `sensor.<device_name>_openpilot_version` - The installed openpilot version
+- `sensor.<device_name>_git_branch` - Git branch of the openpilot build (e.g. "dev")
+- `sensor.<device_name>_git_commit` - Abbreviated git commit SHA. The full SHA, commit date and dirty flag are available as attributes
+- `sensor.<device_name>_git_remote` - Git remote the openpilot build came from (e.g. "github.com/commaai/openpilot")
+- `sensor.<device_name>_platform` - Vehicle platform reported by openpilot (e.g. "RIVIAN_R1")
 - `sensor.<device_name>_is_owner` - Whether you are the owner of the device ("Yes" or "No")
 - `sensor.<device_name>_is_paired` - Whether the device is paired ("Yes" or "No")
 - `sensor.<device_name>_prime_status` - Whether the device has comma prime ("Yes" or "No")
@@ -71,13 +77,13 @@ For each comma.ai device, the following entities will be created:
 - `sensor.<device_name>_last_location_time` - Last location update timestamp
 
 #### All-Time Statistics
-- `sensor.<device_name>_total_distance` - Total distance driven with openpilot (km, auto-converts to miles)
-- `sensor.<device_name>_total_minutes` - Total minutes driven with openpilot
+- `sensor.<device_name>_total_distance` - Total distance driven with openpilot (shown in km or miles, following your Home Assistant unit system)
+- `sensor.<device_name>_total_minutes` - Total time driven with openpilot (shown in days by default; the native unit is minutes, so you can change the display unit in the entity settings)
 - `sensor.<device_name>_total_routes` - Total number of routes driven with openpilot
 
 #### Weekly Statistics
-- `sensor.<device_name>_week_distance` - Distance driven this week (km, auto-converts to miles)
-- `sensor.<device_name>_week_minutes` - Minutes driven this week
+- `sensor.<device_name>_week_distance` - Distance driven this week (shown in km or miles, following your Home Assistant unit system)
+- `sensor.<device_name>_week_minutes` - Time driven this week (shown in hours by default; the native unit is minutes, so you can change the display unit in the entity settings)
 - `sensor.<device_name>_week_routes` - Number of routes driven this week
 
 ### Device Tracker

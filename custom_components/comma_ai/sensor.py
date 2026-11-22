@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfLength, UnitOfTime
+from homeassistant.const import UnitOfElectricPotential, UnitOfLength, UnitOfTime
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -53,6 +53,21 @@ def get_last_location_time(device: CommaDevice) -> StateType:
     return datetime.fromtimestamp(device["location_time"] / 1000, tz=timezone.utc)
 
 
+def get_short_commit(device: CommaDevice) -> StateType:
+    """Get the abbreviated git commit SHA of the latest uploaded route."""
+    commit = device["git_commit"]
+    return commit[:7] if commit else None
+
+
+def get_git_commit_attributes(device: CommaDevice) -> dict[str, Any]:
+    """Get the full commit details for the abbreviated commit sensor."""
+    return {
+        "commit": device["git_commit"],
+        "commit_date": device["git_commit_date"],
+        "dirty": device["git_dirty"],
+    }
+
+
 SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
     CommaSensorEntityDescription(
         key="dongle_id",
@@ -85,6 +100,31 @@ SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
         value_fn=lambda device: device["openpilot_version"],
     ),
     CommaSensorEntityDescription(
+        key="git_branch",
+        translation_key="git_branch",
+        icon="mdi:source-branch",
+        value_fn=lambda device: device["git_branch"],
+    ),
+    CommaSensorEntityDescription(
+        key="git_commit",
+        translation_key="git_commit",
+        icon="mdi:source-commit",
+        value_fn=get_short_commit,
+        extra_values_fn=get_git_commit_attributes,
+    ),
+    CommaSensorEntityDescription(
+        key="git_remote",
+        translation_key="git_remote",
+        icon="mdi:git",
+        value_fn=lambda device: device["git_remote"],
+    ),
+    CommaSensorEntityDescription(
+        key="platform",
+        translation_key="platform",
+        icon="mdi:car-info",
+        value_fn=lambda device: device["platform"],
+    ),
+    CommaSensorEntityDescription(
         key="is_prime",
         translation_key="is_prime",
         icon="mdi:crown",
@@ -102,12 +142,23 @@ SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=get_last_location_time,
     ),
+    CommaSensorEntityDescription(
+        key="car_battery_voltage",
+        translation_key="car_battery_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda device: device["car_battery_voltage"],
+        # raw panda message (voltage in mV, harness, ignition) to debug odd readings
+        extra_values_fn=lambda device: device["panda_state"] or {},
+    ),
     # All-time stats
     CommaSensorEntityDescription(
         key="total_distance",
         translation_key="total_distance",
-        native_unit_of_measurement=UnitOfLength.KILOMETERS,
-        suggested_unit_of_measurement=UnitOfLength.MILES,
+        # the stats API reports miles; Home Assistant converts to the unit system
+        native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=1,
@@ -118,6 +169,8 @@ SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
         key="total_minutes",
         translation_key="total_minutes",
         native_unit_of_measurement=UnitOfTime.MINUTES,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        suggested_display_precision=1,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:clock-outline",
@@ -134,8 +187,8 @@ SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
     CommaSensorEntityDescription(
         key="week_distance",
         translation_key="week_distance",
-        native_unit_of_measurement=UnitOfLength.KILOMETERS,
-        suggested_unit_of_measurement=UnitOfLength.MILES,
+        # the stats API reports miles; Home Assistant converts to the unit system
+        native_unit_of_measurement=UnitOfLength.MILES,
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=1,
@@ -146,6 +199,8 @@ SENSOR_DESCRIPTIONS: tuple[CommaSensorEntityDescription, ...] = (
         key="week_minutes",
         translation_key="week_minutes",
         native_unit_of_measurement=UnitOfTime.MINUTES,
+        suggested_unit_of_measurement=UnitOfTime.HOURS,
+        suggested_display_precision=1,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL,
         icon="mdi:calendar-week",

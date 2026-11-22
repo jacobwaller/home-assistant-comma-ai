@@ -7,12 +7,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity import DeviceInfo
 
-from .api import CommaAPIClient
-from .const import CONF_JWT_TOKEN, DOMAIN, PLATFORMS
+from .api import CommaAPIClient, CommaAuthError
+from .const import CONF_JWT_TOKEN, PLATFORMS
 from .coordinator import CommaDataUpdateCoordinator
 
 if TYPE_CHECKING:
@@ -32,13 +31,6 @@ class CommaData:
 type CommaConfigEntry = ConfigEntry[CommaData]
 
 
-async def _async_entry_updated(hass: HomeAssistant, config_entry: CommaConfigEntry) -> None:
-    """Handle config entry option updates."""
-    coordinator = config_entry.runtime_data.coordinator
-    coordinator.set_update_interval(coordinator.current_update_interval)
-    await coordinator.async_request_refresh()
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: CommaConfigEntry,
@@ -55,6 +47,8 @@ async def async_setup_entry(
     try:
         profile = await api_client.get_profile()
         _LOGGER.debug("Authenticated as user: %s", profile.get("username"))
+    except CommaAuthError as err:
+        raise ConfigEntryAuthFailed("JWT token is invalid or expired") from err
     except Exception as err:
         _LOGGER.error("Failed to authenticate with comma.ai: %s", err)
         return False
@@ -66,7 +60,6 @@ async def async_setup_entry(
         coordinator=coordinator,
         api_client=api_client,
     )
-    config_entry.async_on_unload(config_entry.add_update_listener(_async_entry_updated))
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     return True
@@ -77,4 +70,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: CommaConfigEntry) -> bo
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         del entry.runtime_data
     return unload_ok
+
 

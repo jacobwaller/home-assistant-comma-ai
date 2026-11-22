@@ -2,7 +2,7 @@
   "domain": "comma_ai",
   "name": "comma.ai",
   "codeowners": [
-    "@jacobwaller"
+    "@bscholer"
   ],
   "config_flow": true,
   "documentation": "https://github.com/bscholer/home-assistant-comma-ai",
@@ -10,5 +10,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/bscholer/home-assistant-comma-ai/issues",
   "requirements": [],
-  "version": "1.0.5"
+  "version": "1.2.0"
 }

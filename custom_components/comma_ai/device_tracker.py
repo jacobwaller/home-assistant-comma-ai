@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import CommaDataUpdateCoordinator, CommaDevice
+from .coordinator import CommaDataUpdateCoordinator
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -87,12 +87,6 @@ class CommaDeviceTracker(CoordinatorEntity[CommaDataUpdateCoordinator], TrackerE
         """Return the location accuracy of the device."""
         # Location accuracy is not provided by the comma.ai location API
         return 0
-
-    @property
-    def battery_level(self) -> int | None:
-        """Return the battery level of the device."""
-        # Battery level is not provided by the comma.ai API
-        return None
 
     @property
     def available(self) -> bool:
